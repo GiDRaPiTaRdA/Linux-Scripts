@@ -25,7 +25,6 @@ def draw_menu(stdscr, title, items, selected):
     write(1, title)
     write(2, "─" * max(0, width - 4))
 
-    # Keep the selected option visible
     visible_rows = max(1, height - 7)
     offset = max(0, selected - visible_rows + 1)
 
@@ -34,88 +33,32 @@ def draw_menu(stdscr, title, items, selected):
     ):
         item = items[i]
         name = item.get("Name", "Unnamed")
-
         prefix = "[+] " if "Children" in item else "    "
         marker = ">" if i == selected else " "
-
-        # Blue background with black text
         style = (
             curses.color_pair(1)
-            if i == selected
-            else curses.A_NORMAL
+            if i == selected and curses.has_colors()
+            else curses.A_REVERSE if i == selected else curses.A_NORMAL
         )
-
         write(row + 3, f"{marker} {prefix}{name}", style)
 
-    write(
-        height - 2,
-        "↑/↓ Navigate | Enter Select | ← Back | Q Exit"
-    )
-
+    write(height - 2, "↑/↓ Navigate | Enter Select | ← Back | Q Exit")
     stdscr.refresh()
-
-
-def edit_and_execute(stdscr, command):
-    # Return terminal to normal mode
-    curses.endwin()
-
-    # Clear below cursor without clearing terminal history
-    print("\033[0J", end="", flush=True)
-
-    # Prefill editable command
-    readline.set_startup_hook(
-        lambda: readline.insert_text(command)
-    )
-
-    try:
-        edited = input("$ ")
-
-    except (KeyboardInterrupt, EOFError):
-        print()
-        return
-
-    finally:
-        readline.set_startup_hook(None)
-
-    if not edited.strip():
-        return
-
-    try:
-        # Run command through Bash without echoing it again
-        result = subprocess.run(
-            edited,
-            shell=True,
-            executable="/bin/bash",
-            check=False,
-        )
-        sys.exit(result.returncode)
-
-    except KeyboardInterrupt:
-        sys.exit(130)
 
 
 def main(stdscr, root):
     curses.curs_set(0)
     stdscr.keypad(True)
 
-    # 256-color palette:
-    # Foreground 16 = black
-    # Background 74 = light blue
     if curses.has_colors():
         curses.start_color()
         curses.use_default_colors()
-
         if curses.COLORS >= 256:
             curses.init_pair(1, 16, 32)
         else:
-            curses.init_pair(
-                1,
-                curses.COLOR_BLACK,
-                curses.COLOR_BLUE
-            )
+            curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_BLUE)
 
     stack = [("Home", root, 0)]
-
     while stack:
         title, items, selected = stack[-1]
 
@@ -123,49 +66,57 @@ def main(stdscr, root):
             if len(stack) > 1:
                 stack.pop()
                 continue
-            break
+            return None
 
         draw_menu(stdscr, title, items, selected)
         key = stdscr.getch()
 
         if key == curses.KEY_UP:
             selected = (selected - 1) % len(items)
-
         elif key == curses.KEY_DOWN:
             selected = (selected + 1) % len(items)
-
-        elif key in (
-            10,
-            13,
-            curses.KEY_ENTER,
-            curses.KEY_RIGHT
-        ):
+        elif key in (10, 13, curses.KEY_ENTER, curses.KEY_RIGHT):
             item = items[selected]
-
             if "Children" in item:
                 stack[-1] = (title, items, selected)
-
-                stack.append((
-                    title + " / " + item["Name"],
-                    item["Children"],
-                    0
-                ))
+                stack.append((title + " / " + item["Name"], item["Children"], 0))
                 continue
-
-            elif "Command" in item:
-                edit_and_execute(stdscr, item["Command"])
-                return
-
+            if "Command" in item:
+                # Return selected command; curses.wrapper restores terminal first.
+                return item["Command"]
         elif key in (curses.KEY_LEFT, 27):
             if len(stack) > 1:
                 stack.pop()
                 continue
-            break
-
+            return None
         elif key in (ord("q"), ord("Q")):
-            break
+            return None
 
         stack[-1] = (title, items, selected)
+
+
+def edit_and_execute(command):
+    # This runs after curses.wrapper has restored the normal terminal.
+    readline.set_startup_hook(lambda: readline.insert_text(command))
+    try:
+        try:
+            edited = input("$ ")
+        except (KeyboardInterrupt, EOFError):
+            print()
+            return 130
+    finally:
+        readline.set_startup_hook(None)
+
+    if not edited.strip():
+        return 0
+
+    try:
+        result = subprocess.run(
+            edited, shell=True, executable="/bin/bash", check=False
+        )
+        return result.returncode
+    except KeyboardInterrupt:
+        return 130
 
 
 def load_commands():
@@ -176,14 +127,9 @@ def load_commands():
     try:
         with CONFIG.open(encoding="utf-8") as file:
             commands = json.load(file)
-
         if not isinstance(commands, list):
-            raise ValueError(
-                "nav_commands.json must contain a JSON array."
-            )
-
+            raise ValueError("cheatfile.json must contain a JSON array.")
         return commands
-
     except (json.JSONDecodeError, OSError, ValueError) as error:
         print(f"Error loading commands: {error}")
         sys.exit(1)
@@ -191,8 +137,11 @@ def load_commands():
 
 if __name__ == "__main__":
     commands = load_commands()
-
     try:
-        curses.wrapper(main, commands)
+        selected_command = curses.wrapper(main, commands)
     except KeyboardInterrupt:
         print()
+        sys.exit(130)
+
+    if selected_command is not None:
+        sys.exit(edit_and_execute(selected_command))
