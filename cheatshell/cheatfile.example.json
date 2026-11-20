@@ -1,0 +1,11 @@
+[
+  {
+    "Name": "System information",
+    "Children": [
+      {"Name": "List files", "Command": "ls -lah"},
+      {"Name": "Disk space", "Command": "df -h"},
+      {"Name": "Memory usage", "Command": "free -h"},
+      {"Name": "Kernel information", "Command": "uname -a"}
+    ]
+  }
+]

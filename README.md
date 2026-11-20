@@ -1,9 +1,22 @@
 # Linux Scripts
 
-A collection of Linux command-line utilities and automation scripts. Each tool lives in its own directory with its own documentation and installation instructions.
+A collection of lightweight scripts and command-line utilities for Linux.
 
-## Available tools
+## Tools
 
 | Tool | Description |
 | --- | --- |
-| [CmCheat](cmcheat/README.md) | An interactive terminal launcher for browsing, editing, and running saved commands from a project-local `nav_commands.json` file. |
+| [CheatShell](cheatshell/README.md) | A terminal command launcher for browsing, editing, and executing saved commands from a project-local JSON file. |
+
+## CheatShell quick start
+
+Install the single Python script (no repository clone required):
+
+```bash
+curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/cheatshell.py -o cheatshell.py
+sudo install -m 755 cheatshell.py /usr/local/bin/cheatshell
+```
+
+See [CheatShell's README](cheatshell/README.md) for configuration, examples, controls, updating, and removal.
+
+> The download URL works once `cheatshell/cheatshell.py` has been pushed to the repository's `master` branch.
