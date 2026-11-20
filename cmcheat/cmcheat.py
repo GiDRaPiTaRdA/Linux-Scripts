@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-CONFIG = Path.cwd() / "nav_commands.json"
+CONFIG = Path.cwd() / "cheat_commands.json"
 
 
 def draw_menu(stdscr, title, items, selected):
@@ -21,7 +21,7 @@ def draw_menu(stdscr, title, items, selected):
             except curses.error:
                 pass
 
-    write(0, "COMMAND NAVIGATOR", curses.A_BOLD)
+    write(0, "COMMAND CHEAT", curses.A_BOLD)
     write(1, title)
     write(2, "─" * max(0, width - 4))
 
