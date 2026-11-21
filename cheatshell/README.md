@@ -34,6 +34,8 @@ CheatShell loads available files in this order:
 
 Both are optional, but at least one must exist. Project entries appear first, followed by system entries, with **no automatic nesting**. A root **object** appears as one named menu entry; a root **array** adds its items directly to the menu.
 
+**Example configurations:** [Project cheatfile](https://github.com/GiDRaPiTaRdA/Linux-Scripts/blob/master/cheatshell/cheatfile.example.json) · [System cheatfile](https://github.com/GiDRaPiTaRdA/Linux-Scripts/blob/master/cheatshell/system-cheatfile.json).
+
 **Named menu:**
 
 ```json
