@@ -8,7 +8,8 @@ import sys
 import textwrap
 from pathlib import Path
 
-CONFIG = Path.cwd() / "cheatfile.json"
+PROJECT_CONFIG = Path.cwd() / "cheatfile.json"
+SYSTEM_CONFIG = Path("/etc/cheatshell/cheatfile.json")
 
 
 def preview_lines(item, width):
@@ -178,19 +179,44 @@ def edit_and_execute(command):
         return 130
 
 
+def load_config(path):
+    """Read top-level menu entries without changing the JSON hierarchy.
+
+    A JSON array contributes its items directly to the main menu.
+    A JSON object is kept as one item, including its Name and Children.
+    """
+    with path.open(encoding="utf-8") as file:
+        data = json.load(file)
+    if isinstance(data, list):
+        commands = data
+    elif isinstance(data, dict):
+        commands = [data]
+    else:
+        raise ValueError("root must be a JSON array or object")
+    if not all(isinstance(item, dict) for item in commands):
+        raise ValueError("each top-level command must be a JSON object")
+    return commands
+
+
 def load_commands():
-    if not CONFIG.is_file():
-        print(f"No commands file found: {CONFIG}")
+    # Project entries appear first, followed by optional system entries.
+    # Named root objects retain their own submenu; arrays remain flat.
+    paths = (PROJECT_CONFIG, SYSTEM_CONFIG)
+    found = [path for path in paths if path.is_file()]
+    if not found:
+        print("No CheatShell configuration found:")
+        print(f"  Project config not found: {PROJECT_CONFIG}")
+        print(f"  System config not found:  {SYSTEM_CONFIG}")
         sys.exit(1)
-    try:
-        with CONFIG.open(encoding="utf-8") as file:
-            commands = json.load(file)
-        if not isinstance(commands, list):
-            raise ValueError("cheatfile.json must contain a JSON array.")
-        return commands
-    except (json.JSONDecodeError, OSError, ValueError) as error:
-        print(f"Error loading commands: {error}")
-        sys.exit(1)
+
+    commands = []
+    for path in found:
+        try:
+            commands.extend(load_config(path))
+        except (json.JSONDecodeError, OSError, ValueError) as error:
+            print(f"Error loading config {path}: {error}")
+            sys.exit(1)
+    return commands
 
 if __name__ == "__main__":
     commands = load_commands()
