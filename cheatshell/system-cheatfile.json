@@ -1,58 +1,77 @@
-{
-  "Name": "System commands",
-  "Description": "Shared Linux system, Docker, network, and Git utilities.",
-  "Children": [
-    {
-      "Name": "System information",
-      "Description": "Check machine resources and operating system details.",
-      "Children": [
-        {
-          "Name": "System overview",
-          "Description": "Display hostname, kernel, uptime, and logged-in user.",
-          "Command": [
-            "hostname &&",
-            "uname -a &&",
-            "uptime &&",
-            "whoami"
-          ]
-        },
-        {
-          "Name": "Disk space",
-          "Description": "Show disk usage for mounted filesystems.",
-          "Command": "df -h"
-        },
-        {
-          "Name": "Memory usage",
-          "Description": "Show RAM and swap usage.",
-          "Command": "free -h"
-        },
-        {
-          "Name": "Top processes",
-          "Description": "Show processes using the most CPU.",
-          "Command": "ps aux --sort=-%cpu | head -n 15"
-        }
-      ]
-    },
-    {
-      "Name": "Network",
-      "Description": "Inspect the machine's network configuration.",
-      "Children": [
-        {
-          "Name": "IP addresses",
-          "Description": "List network interfaces and assigned IP addresses.",
-          "Command": "ip -brief address"
-        },
-        {
-          "Name": "Routes",
-          "Description": "Display the system routing table.",
-          "Command": "ip route"
-        },
-        {
-          "Name": "Listening ports",
-          "Description": "Show locally listening TCP and UDP sockets.",
-          "Command": "ss -tuln"
-        }
-      ]
-    }
-  ]
-}
+[
+  {
+    "Name": "System commands",
+    "Description": "Shared Linux system, Docker, network, and Git utilities.",
+    "Children": [
+      {
+        "Name": "System information",
+        "Description": "Check machine resources and operating system details.",
+        "Children": [
+          {
+            "Name": "System overview",
+            "Description": "Display hostname, kernel, uptime, and logged-in user.",
+            "Command": [
+              "hostname &&",
+              "uname -a &&",
+              "uptime &&",
+              "whoami"
+            ]
+          },
+          {
+            "Name": "Disk space",
+            "Description": "Show disk usage for mounted filesystems.",
+            "Command": "df -h"
+          },
+          {
+            "Name": "Memory usage",
+            "Description": "Show RAM and swap usage.",
+            "Command": "free -h"
+          },
+          {
+            "Name": "Top processes",
+            "Description": "Show processes using the most CPU.",
+            "Command": "ps aux --sort=-%cpu | head -n 15"
+          }
+        ]
+      },
+      {
+        "Name": "Network",
+        "Description": "Inspect the machine's network configuration.",
+        "Children": [
+          {
+            "Name": "IP addresses",
+            "Description": "List network interfaces and assigned IP addresses.",
+            "Command": "ip -brief address"
+          },
+          {
+            "Name": "Routes",
+            "Description": "Display the system routing table.",
+            "Command": "ip route"
+          },
+          {
+            "Name": "Listening ports",
+            "Description": "Show locally listening TCP and UDP sockets.",
+            "Command": "ss -tuln"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "Name": "CheatShell",
+    "Description": "Manage the installed CheatShell command.",
+    "Children": [
+      {
+        "Name": "Update CheatShell from GitHub",
+        "Description": "Download and install the latest published CheatShell version.",
+        "Command": [
+          "tmp=$(mktemp --suffix=.py) &&",
+          "curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/cheatshell.py -o \"$tmp\" &&",
+          "python3 -m py_compile \"$tmp\" &&",
+          "sudo install -m 755 \"$tmp\" /usr/local/bin/cheatshell &&",
+          "rm -f \"$tmp\""
+        ]
+      }
+    ]
+  }
+]

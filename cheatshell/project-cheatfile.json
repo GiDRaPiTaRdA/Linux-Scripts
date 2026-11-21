@@ -28,23 +28,6 @@
         "df -h &&",
         "free -h"
       ]
-    },
-    {
-      "Name": "CheatShell",
-      "Description": "Manage the installed CheatShell command.",
-      "Children": [
-        {
-          "Name": "Update CheatShell from GitHub",
-          "Description": "Download and install the latest published CheatShell version.",
-          "Command": [
-            "tmp=$(mktemp --suffix=.py) &&",
-            "curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/cheatshell.py -o \"$tmp\" &&",
-            "python3 -m py_compile \"$tmp\" &&",
-            "sudo install -m 755 \"$tmp\" /usr/local/bin/cheatshell &&",
-            "rm -f \"$tmp\""
-          ]
-        }
-      ]
     }
   ]
 }
