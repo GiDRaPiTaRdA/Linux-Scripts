@@ -1,65 +1,99 @@
+
 {
   "Name": "CheatShell",
-  "Description": "Install, update, and edit CheatShell configuration files.",
+  "Description": "Manage CheatShell and its configuration files.",
   "Children": [
     {
-      "Name": "Update CheatShell from GitHub",
-      "Description": "Download the latest script, check its syntax, and install it system-wide.",
-      "Command": [
-        "tmp=$(mktemp) &&",
-        "trap 'rm -f \"$tmp\"' EXIT &&",
-        "curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/cheatshell.py -o \"$tmp\" &&",
-        "python3 -m py_compile \"$tmp\" &&",
-        "sudo install -m 755 \"$tmp\" /usr/local/bin/cheatshell"
+      "Name": "Project cheatfile",
+      "Description": "Manage the current project's cheatfile.json.",
+      "Children": [
+        {
+          "Name": "Create project cheatfile",
+          "Description": "Download the example if missing, then open it in nano.",
+          "Command": [
+            "if [ ! -e cheatfile.json ]; then",
+            "curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/cheatfile.example.json -o cheatfile.json || exit 1;",
+            "fi;",
+            "nano cheatfile.json"
+          ]
+        },
+        {
+          "Name": "Open project cheatfile",
+          "Description": "Edit the current project's cheatfile.json in nano.",
+          "Command": "nano ./cheatfile.json"
+        }
       ]
     },
     {
-      "Name": "Update CheatShell menu from GitHub",
-      "Description": "Download and validate the latest management menu; ask before replacing the installed menu.",
-      "Command": [
-        "tmp=$(mktemp) &&",
-        "trap 'rm -f \"$tmp\"' EXIT &&",
-        "curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/cheatshell-menu.json -o \"$tmp\" &&",
-        "python3 -m json.tool \"$tmp\" >/dev/null &&",
-        "read -r -p 'Replace installed CheatShell menu? [y/N] ' confirm &&",
-        "[[ \"$confirm\" == [yY] ]] &&",
-        "sudo install -D -m 644 \"$tmp\" /etc/cheatshell/cheatshell-menu.json"
+      "Name": "System cheatfile",
+      "Description": "Manage shared system-wide commands.",
+      "Children": [
+        {
+          "Name": "Download system cheatfile",
+          "Description": "Download the shared configuration from GitHub and confirm before replacing it.",
+          "Command": [
+            "tmp=$(mktemp) &&",
+            "trap 'rm -f \"$tmp\"' EXIT &&",
+            "curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/system-cheatfile.json -o \"$tmp\" &&",
+            "python3 -m json.tool \"$tmp\" >/dev/null &&",
+            "if [ -e /etc/cheatshell/system-cheatfile.json ]; then",
+            "read -r -p 'Replace existing system cheatfile? [y/N] ' confirm;",
+            "[[ \"$confirm\" == [yY] ]] || exit 0;",
+            "fi;",
+            "sudo install -D -m 644 \"$tmp\" /etc/cheatshell/system-cheatfile.json"
+          ]
+        },
+        {
+          "Name": "Open system cheatfile",
+          "Description": "Edit the system-wide cheatfile in nano.",
+          "Command": "sudo nano /etc/cheatshell/system-cheatfile.json"
+        },
+        {
+          "Name": "Remove system cheatfile",
+          "Description": "Remove shared system commands after confirmation.",
+          "Command": [
+            "read -r -p 'Remove system cheatfile? [y/N] ' confirm &&",
+            "[[ \"$confirm\" == [yY] ]] &&",
+            "sudo rm -f /etc/cheatshell/system-cheatfile.json"
+          ]
+        }
       ]
     },
     {
-      "Name": "Create project cheatfile",
-      "Description": "Download the example into the current folder if missing, then open with nano.",
-      "Command": [
-        "if [ ! -e cheatfile.json ]; then",
-        "curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/cheatfile.example.json -o cheatfile.json || exit 1;",
-        "fi;",
-        "nano cheatfile.json"
+      "Name": "CheatShell management",
+      "Description": "Update CheatShell and manage its built-in menu.",
+      "Children": [
+        {
+          "Name": "Update CheatShell",
+          "Description": "Download, validate, and update CheatShell and its management menu.",
+          "Command": [
+            "tmp_py=$(mktemp --suffix=.py) &&",
+            "tmp_json=$(mktemp) &&",
+            "trap 'rm -f \"$tmp_py\" \"$tmp_json\"' EXIT &&",
+            "curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/cheatshell.py -o \"$tmp_py\" &&",
+            "curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/cheatshell-menu.json -o \"$tmp_json\" &&",
+            "python3 -m py_compile \"$tmp_py\" &&",
+            "python3 -m json.tool \"$tmp_json\" >/dev/null &&",
+            "sudo install -m 755 \"$tmp_py\" /usr/local/bin/cheatshell &&",
+            "sudo install -D -m 644 \"$tmp_json\" /etc/cheatshell/cheatshell-menu.json &&",
+            "echo 'CheatShell and management menu updated successfully.'"
+          ]
+        },
+        {
+          "Name": "Open CheatShell menu",
+          "Description": "Edit the installed management menu in nano.",
+          "Command": "sudo nano /etc/cheatshell/cheatshell-menu.json"
+        },
+        {
+          "Name": "Remove CheatShell menu",
+          "Description": "Remove the management menu after confirmation. CheatShell will download it again on the next launch.",
+          "Command": [
+            "read -r -p 'Remove CheatShell management menu? [y/N] ' confirm &&",
+            "[[ \"$confirm\" == [yY] ]] &&",
+            "sudo rm -f /etc/cheatshell/cheatshell-menu.json"
+          ]
+        }
       ]
-    },
-    {
-      "Name": "Download system cheatfile",
-      "Description": "Download and validate the system cheatfile; ask before replacing an existing file.",
-      "Command": [
-        "tmp=$(mktemp) &&",
-        "trap 'rm -f \"$tmp\"' EXIT &&",
-        "curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/system-cheatfile.json -o \"$tmp\" &&",
-        "python3 -m json.tool \"$tmp\" >/dev/null &&",
-        "if [ -e /etc/cheatshell/cheatfile.json ]; then",
-        "read -r -p 'Replace existing system cheatfile? [y/N] ' confirm;",
-        "[[ \"$confirm\" == [yY] ]] || exit 0;",
-        "fi;",
-        "sudo install -D -m 644 \"$tmp\" /etc/cheatshell/cheatfile.json"
-      ]
-    },
-    {
-      "Name": "Open project cheatfile",
-      "Description": "Edit ./cheatfile.json in nano.",
-      "Command": "nano ./cheatfile.json"
-    },
-    {
-      "Name": "Open system cheatfile",
-      "Description": "Edit /etc/cheatshell/cheatfile.json in nano with sudo.",
-      "Command": "sudo nano /etc/cheatshell/cheatfile.json"
     }
   ]
 }
