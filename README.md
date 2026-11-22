@@ -1,22 +1,23 @@
 # Linux Scripts
 
-A collection of lightweight scripts and command-line utilities for Linux.
+A collection of lightweight Linux scripts and command-line utilities.
 
 ## Tools
 
 | Tool | Description |
 | --- | --- |
-| [CheatShell](cheatshell/README.md) | A terminal command launcher for browsing, editing, and executing saved commands from a project-local JSON file. |
+| [CheatShell](cheatshell/README.md) | Browse, edit, and run saved shell commands from interactive menus. |
 
-## CheatShell quick start
+## Install CheatShell
 
-Install the single Python script (no repository clone required):
+Download only the Python script — no repository clone required:
 
 ```bash
-curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/cheatshell.py -o cheatshell.py
-sudo install -m 755 cheatshell.py /usr/local/bin/cheatshell
+tmp=$(mktemp) && \
+curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/cheatshell.py -o "$tmp" && \
+sudo install -m 755 "$tmp" /usr/local/bin/cheatshell; rm -f "$tmp"
 ```
 
-See [CheatShell's README](cheatshell/README.md) for configuration, examples, controls, updating, and removal.
+Run `cheatshell`. On first launch, it downloads and installs its management menu (requires internet access and permission to use `sudo`). Run `cheatshell` again to open the menu.
 
-> The download URL works once `cheatshell/cheatshell.py` has been pushed to the repository's `master` branch.
+See the [CheatShell README](cheatshell/README.md) for configuration, usage, and updating.

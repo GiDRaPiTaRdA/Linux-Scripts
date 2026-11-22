@@ -1,95 +1,83 @@
 # CheatShell
 
-**CheatShell** is a lightweight Linux terminal menu for browsing and running commands saved in `cheatfile.json`. It supports nested menus, optional descriptions, multiline command previews, and a single editable command prompt before execution.
+**CheatShell** is an interactive Linux command launcher. Browse nested menus, preview saved commands, edit a command before running it, and keep different commands for different projects.
 
-Requires Python 3 (`curses` and `readline`), Bash, and no third-party Python packages.
+Requires **Python 3** (with `curses` and `readline`) and **Bash**. No third-party Python packages are required.
 
 ## Install
 
-```bash
-curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/cheatshell.py -o cheatshell.py
-sudo install -m 755 cheatshell.py /usr/local/bin/cheatshell
-```
-
-### Optional shared system commands
+Download only the script:
 
 ```bash
-sudo mkdir -p /etc/cheatshell
-
-curl -fL \
-  https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/system-cheatfile.json \
-  -o /tmp/system-cheatfile.json && \
-python3 -m json.tool /tmp/system-cheatfile.json >/dev/null && \
-sudo install -m 644 /tmp/system-cheatfile.json /etc/cheatshell/cheatfile.json
+tmp=$(mktemp) && \
+curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/cheatshell.py -o "$tmp" && \
+sudo install -m 755 "$tmp" /usr/local/bin/cheatshell; rm -f "$tmp"
 ```
 
-Rerun the commands to update the shared configuration. Review remote scripts and commands before installing them.
+Run `cheatshell`. **On first launch**, it downloads the management menu to `/etc/cheatshell/cheatshell-menu.json` (internet and `sudo` access needed). Run `cheatshell` a second time to open the menu.
 
-## Configuration
+## Project commands
 
-CheatShell loads available files in this order:
+CheatShell reads `cheatfile.json` from the **current directory**. Download the [project example](project-cheatfile.json) to try it:
 
-1. **Project:** `./cheatfile.json` (current directory)
-2. **System:** `/etc/cheatshell/cheatfile.json`
-
-Both are optional, but at least one must exist. Project entries appear first, followed by system entries, with **no automatic nesting**. A root **object** appears as one named menu entry; a root **array** adds its items directly to the menu.
-
-**Example configurations:** [Project cheatfile](https://github.com/GiDRaPiTaRdA/Linux-Scripts/blob/master/cheatshell/cheatfile.example.json) · [System cheatfile](https://github.com/GiDRaPiTaRdA/Linux-Scripts/blob/master/cheatshell/system-cheatfile.json).
-
-**Named menu:**
-
-```json
-{
-  "Name": "Minecraft project",
-  "Description": "Minecraft server tools",
-  "Children": [
-    {"Name": "Running containers", "Command": "docker ps"}
-  ]
-}
+```bash
+curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/project-cheatfile.json -o cheatfile.json
+cheatshell
 ```
 
-**Direct menu entries, including a multiline preview:**
+Example `cheatfile.json`:
 
 ```json
 [
-  {"Name": "Disk space", "Command": "df -h"},
   {
-    "Name": "Disk and memory",
-    "Description": "Show disk space and RAM usage",
-    "Command": ["df -h &&", "free -h"]
+    "Name": "System",
+    "Children": [
+      {"Name": "Current user", "Command": "whoami"},
+      {"Name": "Disk space", "Command": "df -h"}
+    ]
   }
 ]
 ```
 
-`Name` labels an item, `Description` is optional, `Children` defines a submenu, and `Command` accepts a string or an array of strings. Array elements appear on separate lines **in the preview**, then join with spaces for editing and execution. Include your own Bash operators (`&&`, `;`, `||`, `|`) between commands.
+Each entry has a `Name` and either `Children` (submenu) or `Command` (shell command). Optional `Description` text appears in the preview. `Command` accepts a string or an array of strings; array parts are joined with spaces when executed, so include operators such as `&&` where needed. The root JSON may be an array of entries or one named object.
 
-## Run and navigate
+## Optional system commands
 
-Run `cheatshell` from your project directory, or from anywhere if you installed the system cheatfile.
+Add commands available from every directory using `/etc/cheatshell/system-cheatfile.json`. Download the [system example](system-cheatfile.json) and install it:
+
+```bash
+curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/system-cheatfile.json -o /tmp/cheatshell-system.json && \
+python3 -m json.tool /tmp/cheatshell-system.json >/dev/null && \
+sudo install -D -m 644 /tmp/cheatshell-system.json /etc/cheatshell/system-cheatfile.json
+```
+
+Menus are shown in this order: **project commands → system commands → CheatShell management**. Project and system commands are optional; the management menu is installed automatically.
+
+## Controls
 
 | Key | Action |
 | --- | --- |
 | `↑` / `↓` | Navigate |
-| `Enter` / `→` | Open submenu or edit command |
-| `←` / `Esc` | Go back or exit |
+| `Enter` / `→` | Open submenu or edit selected command |
+| `←` / `Esc` | Back / exit |
 | `Q` | Quit |
 
-Selecting a command opens **one prefilled, editable line**. Press **Enter** to run it or **Ctrl+C** to cancel. There is no additional confirmation. Edits do not change the JSON. Commands execute in a child Bash process, so `cd` and `export` do not persist in your original terminal.
+When you select a command, edit the prefilled `$` prompt and press **Enter** to execute. Press **Ctrl+C** to cancel. Changes to the command line aren't saved to JSON. Commands run in a child Bash process, so `cd` and `export` don't change your original shell.
 
-## Update or uninstall
+## Check, update, or remove
 
-Update from GitHub:
+Inspect loaded configurations:
 
 ```bash
-curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/cheatshell.py -o cheatshell.py && \
-python3 -m py_compile cheatshell.py && \
-sudo install -m 755 cheatshell.py /usr/local/bin/cheatshell
+cheatshell --check
 ```
 
-Uninstall the executable (configuration files remain):
+To update, choose **CheatShell → CheatShell management → Update CheatShell** inside the menu, or download and reinstall the latest script using the installation command above.
+
+Uninstall the executable:
 
 ```bash
 sudo rm /usr/local/bin/cheatshell
 ```
 
-**Source:** [CheatShell on GitHub](https://github.com/GiDRaPiTaRdA/Linux-Scripts/tree/master/cheatshell)
+This leaves your JSON configuration files in place.
