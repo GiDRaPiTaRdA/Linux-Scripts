@@ -12,7 +12,7 @@
           "Description": "Download the example if missing, then open it in nano.",
           "Command": [
             "if [ ! -e cheatfile.json ]; then",
-            "curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/cheatfile.example.json -o cheatfile.json || exit 1;",
+            "curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/project-cheatfile.json -o cheatfile.json || exit 1;",
             "fi;",
             "nano cheatfile.json"
           ]
@@ -30,16 +30,12 @@
       "Children": [
         {
           "Name": "Download system cheatfile",
-          "Description": "Download the shared configuration from GitHub and confirm before replacing it.",
+          "Description": "Download and validate the system cheatfile, replacing the installed configuration.",
           "Command": [
             "tmp=$(mktemp) &&",
             "trap 'rm -f \"$tmp\"' EXIT &&",
             "curl -fL https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/system-cheatfile.json -o \"$tmp\" &&",
             "python3 -m json.tool \"$tmp\" >/dev/null &&",
-            "if [ -e /etc/cheatshell/system-cheatfile.json ]; then",
-            "read -r -p 'Replace existing system cheatfile? [y/N] ' confirm;",
-            "[[ \"$confirm\" == [yY] ]] || exit 0;",
-            "fi;",
             "sudo install -D -m 644 \"$tmp\" /etc/cheatshell/system-cheatfile.json"
           ]
         },
@@ -50,18 +46,14 @@
         },
         {
           "Name": "Remove system cheatfile",
-          "Description": "Remove shared system commands after confirmation.",
-          "Command": [
-            "read -r -p 'Remove system cheatfile? [y/N] ' confirm &&",
-            "[[ \"$confirm\" == [yY] ]] &&",
-            "sudo rm -f /etc/cheatshell/system-cheatfile.json"
-          ]
+          "Description": "Delete the shared system configuration.",
+          "Command": "sudo rm -v /etc/cheatshell/system-cheatfile.json"
         }
       ]
     },
     {
       "Name": "CheatShell management",
-      "Description": "Update CheatShell and manage its built-in menu.",
+      "Description": "Update CheatShell and manage its menu.",
       "Children": [
         {
           "Name": "Update CheatShell",
@@ -86,12 +78,8 @@
         },
         {
           "Name": "Remove CheatShell menu",
-          "Description": "Remove the management menu after confirmation. CheatShell will download it again on the next launch.",
-          "Command": [
-            "read -r -p 'Remove CheatShell management menu? [y/N] ' confirm &&",
-            "[[ \"$confirm\" == [yY] ]] &&",
-            "sudo rm -f /etc/cheatshell/cheatshell-menu.json"
-          ]
+          "Description": "Delete the management menu. CheatShell will download it again on the next launch.",
+          "Command": "sudo rm -v /etc/cheatshell/cheatshell-menu.json"
         }
       ]
     }

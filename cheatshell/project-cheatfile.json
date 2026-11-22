@@ -4,22 +4,7 @@
   "Children": [
     {
       "Name": "List files",
-      "Description": "List all files, including hidden files, with detailed information.",
       "Command": "ls -lah"
-    },
-    {
-      "Name": "Disk space",
-      "Description": "Show disk usage and available space.",
-      "Command": "df -h"
-    },
-    {
-      "Name": "Memory usage",
-      "Command": "free -h"
-    },
-    {
-      "Name": "Kernel information",
-      "Description": "Show Linux kernel and system information.",
-      "Command": "uname -a"
     },
     {
       "Name": "Disk and memory Multiline command",

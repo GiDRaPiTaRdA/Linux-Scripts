@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 
 import curses
+import os
+import tempfile
+import urllib.error
+import urllib.request
 import json
 import readline
 import subprocess
@@ -9,7 +13,12 @@ import textwrap
 from pathlib import Path
 
 PROJECT_CONFIG = Path.cwd() / "cheatfile.json"
-SYSTEM_CONFIG = Path("/etc/cheatshell/cheatfile.json")
+SYSTEM_CONFIG = Path("/etc/cheatshell/system-cheatfile.json")
+MENU_CONFIG = Path("/etc/cheatshell/cheatshell-menu.json")
+GITHUB_RAW = "https://raw.githubusercontent.com/GiDRaPiTaRdA/Linux-Scripts/master/cheatshell/"
+
+# Management commands are maintained exclusively in cheatshell-menu.json.
+# On first launch, CheatShell downloads this file from the project repository.
 
 
 def preview_lines(item, width):
@@ -171,12 +180,22 @@ def edit_and_execute(command):
     if not edited.strip():
         return 0
     try:
+        # Let Bash write stdout and stderr directly to the terminal. This
+        # preserves interactive programs (sudo, nano, read prompts, etc.) and
+        # lets users see the actual error message instead of an exit code.
         result = subprocess.run(
             edited, shell=True, executable="/bin/bash", check=False
         )
-        return result.returncode
     except KeyboardInterrupt:
+        print("\nCommand interrupted.")
         return 130
+    except OSError as error:
+        print(f"\nCommand could not start: {error}", file=sys.stderr)
+        return 1
+
+    if result.returncode != 0:
+        print("\n✗ Command failed. Check the error message above.", file=sys.stderr)
+    return result.returncode
 
 
 def load_config(path):
@@ -198,33 +217,112 @@ def load_config(path):
     return commands
 
 
-def load_commands():
-    # Project entries appear first, followed by optional system entries.
-    # Named root objects retain their own submenu; arrays remain flat.
-    paths = (PROJECT_CONFIG, SYSTEM_CONFIG)
-    found = [path for path in paths if path.is_file()]
-    if not found:
-        print("No CheatShell configuration found:")
-        print(f"  Project config not found: {PROJECT_CONFIG}")
-        print(f"  System config not found:  {SYSTEM_CONFIG}")
-        sys.exit(1)
+def validate_menu(path):
+    """Verify the downloaded management menu before installing it."""
+    menu = load_config(path)
+    if (len(menu) != 1 or menu[0].get("Name") != "CheatShell"
+            or not isinstance(menu[0].get("Children"), list)):
+        raise ValueError('management menu must be one "CheatShell" object with Children')
+    return menu
 
+
+def ensure_menu_installed():
+    """Install the GitHub management menu on first launch, then read it from disk."""
+    if MENU_CONFIG.is_file():
+        return
+    if MENU_CONFIG.exists():
+        raise RuntimeError(f"Not a regular file: {MENU_CONFIG}")
+
+    print(f"Management menu missing: {MENU_CONFIG}", flush=True)
+    print("Downloading cheatshell-menu.json from GitHub...", flush=True)
+    temp_path = None
+    try:
+        temp_path = download_to_temp("cheatshell-menu.json")
+        validate_menu(temp_path)
+        # GNU install supports -D (create parent directory), but NOT -n.
+        # Do not elevate the whole application: only the installation step.
+        if os.geteuid() == 0:
+            install_cmd = ["install", "-D", "-m", "644", str(temp_path), str(MENU_CONFIG)]
+        else:
+            install_cmd = ["sudo", "install", "-D", "-m", "644", str(temp_path), str(MENU_CONFIG)]
+        subprocess.run(install_cmd, check=True)
+        print(f"Installed {MENU_CONFIG}", flush=True)
+    finally:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
+
+    if not MENU_CONFIG.is_file():
+        raise RuntimeError(f"Installation did not produce {MENU_CONFIG}")
+
+
+def load_commands():
+    """Project first, then system, then the mandatory CheatShell menu."""
     commands = []
-    for path in found:
+    for path in (PROJECT_CONFIG, SYSTEM_CONFIG):
+        if not path.is_file():
+            continue
         try:
             commands.extend(load_config(path))
         except (json.JSONDecodeError, OSError, ValueError) as error:
             print(f"Error loading config {path}: {error}")
             sys.exit(1)
+
+    # The required management menu is loaded from disk, never from Python.
+    try:
+        commands.extend(validate_menu(MENU_CONFIG))
+    except (json.JSONDecodeError, OSError, ValueError) as error:
+        print(f"Error loading CheatShell menu {MENU_CONFIG}: {error}", file=sys.stderr)
+        sys.exit(1)
     return commands
 
+
+def download_to_temp(filename):
+    """Download a repository file to a temporary, privately owned file."""
+    url = GITHUB_RAW + filename
+    with urllib.request.urlopen(url, timeout=25) as response:
+        content = response.read(2_000_001)
+    if len(content) > 2_000_000:
+        raise ValueError("Downloaded file is unexpectedly large")
+    with tempfile.NamedTemporaryFile(mode="wb", delete=False, prefix="cheatshell-") as tmp:
+        tmp.write(content)
+        return Path(tmp.name)
+
+
 if __name__ == "__main__":
-    commands = load_commands()
+    first_run = not MENU_CONFIG.exists()
     try:
-        selected_command = curses.wrapper(main, commands)
+        ensure_menu_installed()
+    except (OSError, ValueError, RuntimeError, urllib.error.URLError, subprocess.CalledProcessError) as error:
+        print(f"Could not initialize CheatShell management menu: {error}", file=sys.stderr)
+        print("Install /etc/cheatshell/cheatshell-menu.json manually or check network and sudo access.", file=sys.stderr)
+        sys.exit(1)
+
+    if first_run:
+        print("CheatShell management menu installed successfully.")
+        print("Run 'cheatshell' again to open the menu.")
+        sys.exit(0)
+
+    commands = load_commands()
+    if "--check" in sys.argv[1:]:
+        print(f"Executable: {Path(__file__).resolve()}")
+        print(f"Project: {PROJECT_CONFIG} ({'found' if PROJECT_CONFIG.is_file() else 'missing'})")
+        print(f"System: {SYSTEM_CONFIG} ({'found' if SYSTEM_CONFIG.is_file() else 'missing'})")
+        print(f"Management: {MENU_CONFIG} ({'found' if MENU_CONFIG.is_file() else 'missing'})")
+        print(f"Loaded {len(commands)} top-level menu entries:")
+        for index, item in enumerate(commands, start=1):
+            print(f"  {index}. {item.get('Name', '(unnamed)')}")
+        sys.exit(0)
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
+        print("CheatShell needs an interactive terminal (TTY).", file=sys.stderr)
+        sys.exit(1)
+    if not commands:
+        print("CheatShell found no menu entries.", file=sys.stderr)
+        sys.exit(1)
+    try:
+        selected = curses.wrapper(main, commands)
     except KeyboardInterrupt:
         print()
         sys.exit(130)
 
-    if selected_command is not None:
-        sys.exit(edit_and_execute(selected_command))
+    if selected is not None:
+        sys.exit(edit_and_execute(selected))
